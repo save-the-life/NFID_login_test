@@ -1,0 +1,27 @@
+{
+  "canisters": {
+    "NFID_login_backend": {
+      "candid": "src/NFID_login_backend/NFID_login_backend.did",
+      "package": "NFID_login_backend",
+      "type": "rust"
+    },
+    "NFID_login_frontend": {
+      "dependencies": [
+        "NFID_login_backend"
+      ],
+      "source": [
+        "src/NFID_login_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "NFID_login_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

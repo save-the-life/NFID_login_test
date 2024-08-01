@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/NFID_login_backend"
+]
+resolver = "2"
