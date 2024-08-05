@@ -1,3 +1,10 @@
 service : {
-    "greet": (text) -> (text) query;
+    "add_user": (principal) -> (variant { Ok: principal; Err: text });
+    "get_user": (principal) -> (opt record {
+        user_principal: principal;
+        wallet_address: text;
+        referal_user: opt principal;
+    }) query;
+    "get_trusted_origins" : () -> (vec text);
+    "get_all_principals" : () -> (vec principal);
 }

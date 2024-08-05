@@ -1,14 +1,18 @@
 import { AuthClient } from "@dfinity/auth-client";
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { HttpAgent, Actor } from "@dfinity/agent";
+import { idlFactory as backend_idlFactory, canisterId as backend_canisterId } from 'declarations/NFID_login_backend';
+
+
+
 
 const App = () => {
   const [authClient, setAuthClient] = useState(null);
   const [principal, setPrincipal] = useState(null);
   const [sessionExpiry, setSessionExpiry] = useState(null);
-  const [email, setEmail] = useState(null);
   const navigate = useNavigate();
-
+  
   // initialize AuthClient
   useEffect(() => {
     const initAuthClient = async () => {
@@ -36,6 +40,31 @@ const App = () => {
     }
   }, [sessionExpiry]);
 
+  
+  // Internet Identity login
+  const loginII = async (event) =>{
+    event.preventDefault();
+    if (!authClient) return;
+
+    await authClient.login({
+      identityProvider: 'https://identity.ic0.app',
+      onSuccess: async () => {
+        const identity = authClient.getIdentity();
+        const expiryTime = Date.now() + 1 * 60 * 10000;
+        setPrincipal(identity.getPrincipal().toText());
+        setSessionExpiry(expiryTime);
+        localStorage.setItem('principal', identity.getPrincipal().toText());
+        localStorage.setItem('expiresAt', expiryTime.toString());
+
+        // Add user to backend
+        await addUserToBackend(identity.getPrincipal());
+      },
+      onError: (err) => {
+        console.error('Login failed:', err);
+      }
+    });
+  }
+  
   // NFID login
   const loginNFID = async (event) => {
     event.preventDefault();
@@ -53,26 +82,37 @@ const App = () => {
       maxTimeToLive: BigInt(1 * 60 * 10000000000), // set the session for 1 min
       targets: arrayOfYourBackendCanisters,
       
-      onSuccess: () => {
+      onSuccess: async () => {
         const identity = authClient.getIdentity();
         const expiryTime = Date.now() + 1 * 60 * 10000; // expire session after 1 min
         setPrincipal(identity.getPrincipal().toText());
         setSessionExpiry(expiryTime);
-        console.log(expiryTime);
-        console.log(expiryTime.toString());
         localStorage.setItem('principal', identity.getPrincipal().toText());
         localStorage.setItem('expiresAt', expiryTime.toString());
 
-        const email = identity.getEmail();
-        setEmail(email);
-        localStorage.setItem('email', email);
-        console.error('user email :', email);
+        // Add user to backend
+        await addUserToBackend(identity.getPrincipal());
       },
       onError: (err) => {
         console.error('Login failed:', err);
       }
     });
   };
+
+  // Function to add user to backend
+  const addUserToBackend = async (principal) => {
+    const agent = new HttpAgent();
+    // Fetch root key for certificate verification
+    await agent.fetchRootKey();
+    
+    const backendActor = Actor.createActor(backend_idlFactory, {
+      agent,
+      canisterId: backend_canisterId,
+    });
+
+    await backendActor.add_user(principal);
+  };
+
 
   // logout
   const logoutNFID = async () => {
@@ -94,9 +134,14 @@ const App = () => {
           <button onClick={logoutNFID}>Logout</button>
         </div>
       ) : (
-        <form onSubmit={loginNFID}>
-          <button type="submit">NFID LOGIN</button>
-        </form>
+        <div>
+          <form onSubmit={loginII}>
+            <button type="submit">Internet Identity LOGIN</button>
+          </form>
+          <form onSubmit={loginNFID}>
+            <button type="submit">NFID LOGIN</button>
+          </form>
+        </div>
       )}
       <div>
         <button onClick={() => navigate('/userTest')}>
