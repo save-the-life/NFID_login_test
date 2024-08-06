@@ -55,7 +55,7 @@ fn post_upgrade() {
         },
         Err(e) => {
             ic_cdk::println!("Failed to restore stable storage: {}", e);
-            init(); // 데이터 초기화
+            init(); // data initialization
         }
     }
 }
@@ -63,7 +63,7 @@ fn post_upgrade() {
 // store the new user info at stable memory
 #[update]
 fn add_user(principal: Principal) -> Result<(), String> {
-    let wallet_address = "dummy_wallet_address".to_string(); // 임의의 지갑 주소
+    let wallet_address = "dummy_wallet_address".to_string(); // arbitrary wallet address
     USERS.with(|users| {
         let mut users = users.borrow_mut();
         if users.contains_key(&principal) {
